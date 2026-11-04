@@ -22,7 +22,7 @@ jobs:
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '17'
         distribution: 'temurin'
 
     - name: Install dependencies
@@ -31,21 +31,22 @@ jobs:
     - name: Build web assets
       run: npm run build
 
-    - name: Install Capacitor
-      run: npm install @capacitor/core @capacitor/cli @capacitor/android
-
     - name: Add Android platform
       run: |
         npx cap add android || true
         npx cap sync android
 
+    - name: Fix Kotlin version conflict
+      run: |
+        sed -i 's/kotlinVersion = .*/kotlinVersion = "1.9.10"/' android/variables.gradle || true
+
     - name: Set Gradle permissions
       run: chmod +x android/gradlew
 
-    - name: Accept licenses and build APK
+    - name: Build APK
       run: |
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        cd android && ./gradlew assembleDebug --no-daemon
+        cd android && ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
