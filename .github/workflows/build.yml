@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -25,30 +25,28 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
     - name: Install dependencies
       run: npm install
 
     - name: Build web assets
       run: npm run build
 
-    - name: Install Capacitor CLI
-      run: npm install -g @capacitor/cli @capacitor/core @capacitor/android
-
-    - name: Init Capacitor Android
+    - name: Install Capacitor
       run: |
-        npm install @capacitor/android
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+
+    - name: Add Android platform
+      run: |
         npx cap add android || true
         npx cap sync android
 
     - name: Set Gradle permissions
       run: chmod +x android/gradlew
 
-    - name: Build APK
-      working-directory: android
-      run: ./gradlew assembleDebug --no-daemon
+    - name: Accept licenses and build APK
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        cd android && ./gradlew assembleDebug --no-daemon
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
