@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CookingJoy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #1a0a2e;
+      touch-action: none;
+    }
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #ui-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #hint-box {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,220,100,0.95);
+      border: 3px solid #ff9500;
+      border-radius: 20px;
+      padding: 12px 24px;
+      font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+      color: #5a2d00;
+      text-align: center;
+      pointer-events: all;
+      display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      max-width: 280px;
+      animation: hintPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes hintPulse {
+      0%,100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.04); }
+    }
+    #hint-arrow {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      pointer-events: none;
+      display: none;
+      z-index: 20;
+      animation: arrowBounce 0.8s ease-in-out infinite;
+    }
+    @keyframes arrowBounce {
+      0%,100% { transform: translateY(0) rotate(var(--arrow-rotate,0deg)); }
+      50% { transform: translateY(-10px) rotate(var(--arrow-rotate,0deg)); }
+    }
+    #score-display {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 15px;
+      padding: 8px 16px;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 18px;
+      color: #333;
+      pointer-events: none;
+    }
+    #level-title {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,150,50,0.9);
+      border-radius: 15px;
+      padding: 8px 16px;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 16px;
+      color: white;
+      pointer-events: none;
+    }
+    #skip-hint-btn {
+      position: fixed;
+      bottom: 70px;
+      right: 20px;
+      background: rgba(150,150,150,0.8);
+      border: none;
+      border-radius: 15px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: white;
+      pointer-events: all;
+      display: none;
+      cursor: pointer;
+    }
+    #reward-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: all;
+    }
+    #reward-screen.show { display: flex; }
+    .reward-card {
+      background: linear-gradient(135deg, #fff9e6, #ffe4a0);
+      border-radius: 30px;
+      padding: 40px 50px;
+      text-align: center;
+      border: 4px solid #ffb300;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      animation: rewardPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+    }
+    @keyframes rewardPop {
+      from { transform: scale(0.3); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .reward-title {
+      font-size: 32px;
+      font-weight: 900;
+      color: #e65c00;
+      margin-bottom: 10px;
+      font-family: Arial, sans-serif;
+    }
+    .reward-stars {
+      font-size: 48px;
+      margin: 10px 0;
+    }
+    .reward-coins {
+      font-size: 24px;
+      color: #b8860b;
+      margin: 10px 0;
+      font-family: Arial, sans-serif;
+    }
+    .next-btn {
+      background: linear-gradient(135deg, #ff6b35, #ff9500);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 5px 15px rgba(255,100,0,0.4);
+      font-family: Arial, sans-serif;
+    }
+    .next-btn:active { transform: scale(0.95); }
+    #loading-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg, #1a0a2e, #3d1a6e);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    #loading-screen h1 {
+      color: #ffdd44;
+      font-size: 36px;
+      font-family: Arial, sans-serif;
+      font-weight: 900;
+      text-shadow: 0 0 20px #ff9500;
+      margin-bottom: 30px;
+    }
+    .loading-bar-bg {
+      width: 250px;
+      height: 20px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b35, #ffdd44);
+      border-radius: 10px;
+      animation: loadFill 2s ease forwards;
+    }
+    @keyframes loadFill {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
+    #particle-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 50;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      animation: particleFly linear forwards;
+    }
+    @keyframes particleFly {
+      from { opacity: 1; transform: translate(0,0) scale(1); }
+      to { opacity: 0; transform: translate(var(--px),var(--py)) scale(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-screen">
+    <h1>🍳 CookingJoy</h1>
+    <div class="loading-bar-bg">
+      <div class="loading-bar-fill"></div>
+    </div>
+    <p style="color:#aaa;margin-top:15px;font-family:Arial">Загрузка кухни...</p>
+  </div>
+  <canvas id="game-canvas"></canvas>
+  <div id="ui-overlay">
+    <div id="level-title">Уровень 1</div>
+    <div id="score-display">⭐ 0</div>
+  </div>
+  <div id="hint-box">Возьми ингредиент!</div>
+  <svg id="hint-arrow" viewBox="0 0 50 50">
+    <defs>
+      <linearGradient id="ag" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#ffdd44"/>
+        <stop offset="100%" style="stop-color:#ff9500"/>
+      </linearGradient>
+    </defs>
+    <circle cx="25" cy="25" r="22" fill="url(#ag)" stroke="#fff" stroke-width="3"/>
+    <polygon points="25,10 38,32 12,32" fill="white"/>
+  </svg>
+  <button id="skip-hint-btn">Пропустить подсказку</button>
+  <div id="reward-screen">
+    <div class="reward-card">
+      <div class="reward-title">🎉 Отлично!</div>
+      <div class="reward-stars" id="reward-stars">⭐⭐⭐</div>
+      <div class="reward-coins" id="reward-coins">+150 монет</div>
+      <button class="next-btn" id="next-level-btn">Следующий уровень →</button>
+    </div>
+  </div>
+  <div id="particle-container"></div>
+</body>
+</html>
